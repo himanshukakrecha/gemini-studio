@@ -131,7 +131,7 @@ app.post('/api/upload', async (req, res) => {
     form.append('file',          `data:${imageMime || 'image/jpeg'};base64,${imageB64}`);
     form.append('upload_preset', process.env.CLOUDINARY_UPLOAD_PRESET);
     form.append('folder',        'gemini_studio');
-    form.append('eager',         'f_jpg,q_92');   // force JPEG for Instagram
+    // form.append('eager',         'f_jpg,q_92');   // force JPEG for Instagram
     form.append('resource_type', 'image');
 
     const cdnData = await (await fetch(
@@ -142,8 +142,11 @@ app.post('/api/upload', async (req, res) => {
     if (cdnData.error)
       return res.status(502).json({ error: 'Cloudinary: ' + cdnData.error.message });
 
-    // eager[0].secure_url = forced-JPEG; fallback = original upload URL
-    res.json({ url: cdnData?.eager?.[0]?.secure_url || cdnData.secure_url });
+    // Inject f_jpg,q_92 into the URL so Instagram always receives a JPEG.
+    // Cloudinary applies transformations on-the-fly via URL path:
+    //   .../upload/gemini_studio/abc.png  →  .../upload/f_jpg,q_92/gemini_studio/abc.png
+    const jpegUrl = cdnData.secure_url.replace('/upload/', '/upload/f_jpg,q_92/');
+    res.json({ url: jpegUrl });
 
   } catch (err) {
     console.error('[upload]', err.message);
