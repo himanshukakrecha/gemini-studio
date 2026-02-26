@@ -70,7 +70,7 @@ app.post('/api/enhance', upload.single('image'), async (req, res) => {
 
     // ...existing code...
 const PORT = process.env.PORT || 3000;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'models/gemini-flash-latest';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'models/gemini-3-pro-image-preview';
 // ...existing code...
     const gemRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
