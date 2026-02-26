@@ -68,8 +68,9 @@ app.post('/api/enhance', upload.single('image'), async (req, res) => {
     if (!req.file)        return res.status(400).json({ error: 'No image uploaded' });
     if (!req.body.prompt) return res.status(400).json({ error: 'prompt is required' });
 
+    // ...existing code...
     const gemRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
