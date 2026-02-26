@@ -348,7 +348,7 @@ input.fi.ok { border-color: rgba(16,185,129,.5); }
     <div class="url-bar" id="urlBar">
       <span>🔗</span>
       <span class="url-bar-txt" id="urlTxt">—</span>
-      <button class="copy-btn" onclick="copyUrl()">Copy</button>
+      <button class="copy-btn">Copy</button>
     </div>
 
     <!-- AI insight -->
@@ -356,10 +356,10 @@ input.fi.ok { border-color: rgba(16,185,129,.5); }
 
     <!-- Actions -->
     <div class="actions" id="actions">
-      <button class="btn btn-ai" id="enhBtn" onclick="runEnhance()" disabled>
+      <button class="btn btn-ai" id="enhBtn" disabled>
         <span class="ic">✦</span><div class="sp"></div>ENHANCE WITH GEMINI
       </button>
-      <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
+      <button class="btn btn-ghost">↺ Reset</button>
     </div>
 
   </div>
@@ -370,28 +370,28 @@ input.fi.ok { border-color: rgba(16,185,129,.5); }
     <!-- Presets -->
     <div class="sect">
       <div class="stitle">Studio Style</div>
-      <div class="presets">
-        <div class="pres on" data-p="Transform this raw photo into a professional studio photograph with perfect three-point studio lighting: a strong key light, soft fill light, and sharp rim light. Clean neutral studio background, balanced exposure, rich contrast, and crisp fine detail. High-end commercial studio look." onclick="pickPreset(this)">
+      <div class="presets" id="presets">
+        <div class="pres on" data-p="Transform this raw photo into a professional studio photograph with perfect three-point studio lighting: a strong key light, soft fill light, and sharp rim light. Clean neutral studio background, balanced exposure, rich contrast, and crisp fine detail. High-end commercial studio look.">
           <div class="pres-top"><span>💡</span><span class="pres-nm">Studio Clean</span></div>
           <div class="pres-ds">3-point lighting, neutral backdrop</div>
         </div>
-        <div class="pres" data-p="Apply dramatic Rembrandt lighting: single powerful key light, deep moody shadows on one side, rich contrast, warm shadows, cool highlights, shallow depth-of-field bokeh background. Cinematic portrait look." onclick="pickPreset(this)">
+        <div class="pres" data-p="Apply dramatic Rembrandt lighting: single powerful key light, deep moody shadows on one side, rich contrast, warm shadows, cool highlights, shallow depth-of-field bokeh background. Cinematic portrait look.">
           <div class="pres-top"><span>🎭</span><span class="pres-nm">Dramatic</span></div>
           <div class="pres-ds">Deep shadows, cinematic contrast</div>
         </div>
-        <div class="pres" data-p="Give this photo a golden hour look: warm amber and orange tones, soft diffused backlighting from a low-angle sun, natural lens glow, lifted shadows, glowing highlights. Warm outdoor lifestyle color grade." onclick="pickPreset(this)">
+        <div class="pres" data-p="Give this photo a golden hour look: warm amber and orange tones, soft diffused backlighting from a low-angle sun, natural lens glow, lifted shadows, glowing highlights. Warm outdoor lifestyle color grade.">
           <div class="pres-top"><span>🌅</span><span class="pres-nm">Golden Hour</span></div>
           <div class="pres-ds">Warm amber, outdoor glow</div>
         </div>
-        <div class="pres" data-p="Apply a high-end beauty fashion studio look: large diffused front softbox, minimal shadows, smooth even lighting, soft pastel airy toning, bright clean feel, gentle highlight glow. Glossy fashion magazine cover." onclick="pickPreset(this)">
+        <div class="pres" data-p="Apply a high-end beauty fashion studio look: large diffused front softbox, minimal shadows, smooth even lighting, soft pastel airy toning, bright clean feel, gentle highlight glow. Glossy fashion magazine cover.">
           <div class="pres-top"><span>🌸</span><span class="pres-nm">Beauty Soft</span></div>
           <div class="pres-ds">Softbox, airy fashion magazine</div>
         </div>
-        <div class="pres" data-p="Edit as a premium e-commerce product photo: pure white studio background, bright flat even lighting, perfect sharpness, neutral color, clean shadow. Polished premium like an Apple product launch." onclick="pickPreset(this)">
+        <div class="pres" data-p="Edit as a premium e-commerce product photo: pure white studio background, bright flat even lighting, perfect sharpness, neutral color, clean shadow. Polished premium like an Apple product launch.">
           <div class="pres-top"><span>📦</span><span class="pres-nm">Product Shot</span></div>
           <div class="pres-ds">Commercial white studio</div>
         </div>
-        <div class="pres" data-p="Apply a moody cinematic Netflix film-still look: teal-and-orange color grade, underexposed shadows, subtle film grain, cool cyan highlights, warm amber shadows. High-end streaming original film aesthetic." onclick="pickPreset(this)">
+        <div class="pres" data-p="Apply a moody cinematic Netflix film-still look: teal-and-orange color grade, underexposed shadows, subtle film grain, cool cyan highlights, warm amber shadows. High-end streaming original film aesthetic.">
           <div class="pres-top"><span>🎬</span><span class="pres-nm">Cinematic</span></div>
           <div class="pres-ds">Teal-orange, Netflix grade</div>
         </div>
@@ -419,13 +419,13 @@ input.fi.ok { border-color: rgba(16,185,129,.5); }
         <input class="fi" type="text" id="imageUrl" placeholder="Auto-generated after enhancement…" readonly>
       </div>
 
-      <button class="btn-one" id="oneBtn" onclick="runPipeline()" disabled>
+      <button class="btn-one" id="oneBtn" disabled>
         <span class="oi">⚡</span><div class="sp"></div>ENHANCE → HOST → POST
       </button>
 
       <div class="or-div">or step by step</div>
 
-      <button class="btn-post" id="postBtn" onclick="runPost()" disabled>
+      <button class="btn-post" id="postBtn" disabled>
         <span class="pi">📤</span><div class="sp"></div>POST TO INSTAGRAM
       </button>
 
@@ -748,6 +748,23 @@ function copyUrl() {
     .then(()  => log('URL copied to clipboard', 's'))
     .catch(() => log('Copy failed', 'w'));
 }
+
+// ─── WIRE UP ALL EVENT LISTENERS (replaces inline onclick/oninput) ────────
+document.addEventListener('DOMContentLoaded', () => {
+
+  // Buttons
+  $('enhBtn').addEventListener('click',  () => runEnhance());
+  $('oneBtn').addEventListener('click',  () => runPipeline());
+  $('postBtn').addEventListener('click', () => runPost());
+  document.querySelector('.btn-ghost').addEventListener('click', () => resetAll());
+  document.querySelector('.copy-btn').addEventListener('click',  () => copyUrl());
+
+  // Preset cards — wire all at once via delegation
+  document.getElementById('presets').addEventListener('click', e => {
+    const pres = e.target.closest('.pres');
+    if (pres) pickPreset(pres);
+  });
+});
 </script>
 </body>
 </html>

@@ -24,13 +24,14 @@ const upload = multer({
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc:  ["'self'"],
-      scriptSrc:   ["'self'", "'unsafe-inline'"],
-      styleSrc:    ["'self'", "'unsafe-inline'",
-                    "fonts.googleapis.com", "fonts.gstatic.com"],
-      fontSrc:     ["'self'", "fonts.gstatic.com"],
-      imgSrc:      ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
-      connectSrc:  ["'self'"],
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'", "'unsafe-inline'"],   // script blocks in HTML
+      scriptSrcAttr:  ["'none'"],                       // no inline onclick= etc
+      styleSrc:       ["'self'", "'unsafe-inline'",
+                       "fonts.googleapis.com", "fonts.gstatic.com"],
+      fontSrc:        ["'self'", "fonts.gstatic.com"],
+      imgSrc:         ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
+      connectSrc:     ["'self'"],
     },
   },
 }));
