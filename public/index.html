@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gemini Studio — AI Instagram Publisher</title>
+<meta name="description" content="Transform raw photos into studio-quality images with Gemini AI and publish directly to Instagram.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #07090d;
+  --bg2:    #0c0f15;
+  --surf:   #111620;
+  --surf2:  #161d2a;
+  --bord:   #1c2638;
+  --bord2:  #243044;
+  --accent: #00d4ff;
+  --purple: #7c3aed;
+  --gold:   #f59e0b;
+  --green:  #10b981;
+  --red:    #ef4444;
+  --ig1:    #f09433;
+  --ig2:    #bc1888;
+  --text:   #dde8f4;
+  --muted:  #4e6a87;
+  --dim:    #2e4560;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; }
+
+/* ── HEADER ── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 32px;
+  background: rgba(7,9,13,.97); border-bottom: 1px solid var(--bord);
+  backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 300;
+  gap: 16px;
+}
+.logo { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
+.logo-gem {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.logo-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 2px; }
+.logo-name em { color: var(--accent); font-style: normal; }
+.logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+
+/* Pipeline bar */
+.pipeline {
+  display: flex; align-items: center;
+  background: var(--surf); border: 1px solid var(--bord); border-radius: 10px;
+  padding: 5px 8px; gap: 0; overflow: hidden;
+}
+.ps {
+  display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: 7px; font-size: 12px; font-weight: 500; color: var(--muted);
+  transition: all .25s; white-space: nowrap;
+}
+.ps .pn {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surf2); border: 1px solid var(--bord2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-family: 'JetBrains Mono', monospace; transition: all .25s;
+}
+.ps.active { color: var(--text); }
+.ps.active .pn { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+.ps.done .pn { background: var(--green); color: #000; border-color: var(--green); }
+.ps.done { color: var(--green); }
+.pa { color: var(--dim); font-size: 13px; padding: 0 2px; }
+
+/* ── LAYOUT ── */
+.app { display: grid; grid-template-columns: 1fr 400px; min-height: calc(100vh - 65px); }
+
+/* ── LEFT PANEL ── */
+.main { padding: 26px 30px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; border-right: 1px solid var(--bord); }
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--bord2); border-radius: 16px; background: var(--surf);
+  min-height: 250px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer; transition: all .3s; position: relative; overflow: hidden;
+}
+.drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: rgba(0,212,255,.03); }
+.drop-zone.has-img { display: none; }
+#fileInput { display: none; }
+.drop-inner { text-align: center; pointer-events: none; padding: 40px 20px; }
+.drop-icon { font-size: 48px; margin-bottom: 14px; opacity: .4; }
+.drop-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.drop-sub { font-size: 13px; color: var(--muted); }
+.drop-lnk { color: var(--accent); cursor: pointer; pointer-events: auto; }
+
+/* Compare grid */
+.compare { display: none; gap: 14px; }
+.compare.show { display: grid; grid-template-columns: 1fr 1fr; }
+.ccard { border-radius: 12px; overflow: hidden; border: 1px solid var(--bord2); background: var(--bg2); position: relative; }
+.ccard img { width: 100%; display: block; max-height: 420px; object-fit: contain; background: var(--bg); }
+.clbl {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(7,9,13,.87); backdrop-filter: blur(8px);
+  border: 1px solid var(--bord); border-radius: 6px;
+  padding: 4px 10px; font-size: 10px;
+  font-family: 'JetBrains Mono', monospace; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.clbl.ai { color: var(--accent); border-color: var(--accent); }
+
+/* Loading overlay on right card */
+.lov {
+  display: none; position: absolute; inset: 0;
+  background: rgba(7,9,13,.9);
+  flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+}
+.lov.show { display: flex; }
+.ring { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--bord2); border-top-color: var(--accent); animation: spin .9s linear infinite; }
+.ring-msg { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--accent); letter-spacing: 1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Progress bar */
+.progress-bar-wrap { height: 3px; background: var(--bord); border-radius: 2px; overflow: hidden; display: none; }
+.progress-bar-wrap.show { display: block; }
+.progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--purple)); border-radius: 2px; transition: width .4s ease; }
+
+/* Pipeline cards */
+.pcards { display: none; gap: 10px; }
+.pcards.show { display: grid; grid-template-columns: repeat(3,1fr); }
+.pcard {
+  background: var(--surf); border: 1px solid var(--bord);
+  border-radius: 10px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 4px; transition: all .3s;
+}
+.pcard.active { border-color: var(--accent); background: rgba(0,212,255,.04); }
+.pcard.done   { border-color: var(--green);  background: rgba(16,185,129,.04); }
+.pcard.error  { border-color: var(--red);    background: rgba(239,68,68,.04); }
+.pcard-ttl { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+.pcard-st { font-size: 12px; font-weight: 500; color: var(--dim); }
+.pcard.active .pcard-st { color: var(--accent); }
+.pcard.done   .pcard-st { color: var(--green); }
+.pcard.error  .pcard-st { color: var(--red); }
+
+/* URL result bar */
+.url-bar { display: none; background: rgba(16,185,129,.07); border: 1px solid rgba(16,185,129,.22); border-radius: 10px; padding: 11px 14px; gap: 10px; align-items: center; }
+.url-bar.show { display: flex; }
+.url-bar-txt { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-btn { background: transparent; border: 1px solid rgba(16,185,129,.4); color: var(--green); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .2s; white-space: nowrap; }
+.copy-btn:hover { background: rgba(16,185,129,.15); }
+
+/* AI insight box */
+.ai-insight { display: none; background: var(--surf); border: 1px solid var(--bord); border-left: 3px solid var(--accent); border-radius: 10px; padding: 13px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); line-height: 1.7; }
+.ai-insight.show { display: block; }
+
+/* Action buttons row */
+.actions { display: none; flex-wrap: wrap; gap: 12px; align-items: center; }
+.actions.show { display: flex; }
+
+.btn {
+  border: none; border-radius: 10px; font-family: 'Outfit', sans-serif;
+  font-weight: 600; font-size: 14px; cursor: pointer; padding: 11px 22px;
+  transition: all .2s; display: flex; align-items: center; gap: 8px;
+}
+.btn:disabled { opacity: .35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.btn-ai { background: linear-gradient(135deg, var(--accent), #0099cc); color: #000; }
+.btn-ai:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,212,255,.3); }
+.btn-ghost { background: var(--surf2); border: 1px solid var(--bord2); color: var(--muted); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--text); color: var(--text); }
+.btn .sp { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(0,0,0,.25); border-top-color: #000; animation: spin .7s linear infinite; display: none; }
+.btn.loading .sp { display: block; }
+.btn.loading .ic { display: none; }
+
+/* ── RIGHT PANEL ── */
+.side { background: var(--bg2); overflow-y: auto; display: flex; flex-direction: column; }
+.sect { padding: 20px 22px; border-bottom: 1px solid var(--bord); }
+.stitle { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.stitle::after { content:''; flex:1; height:1px; background: var(--bord); }
+
+/* Presets */
+.presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pres { background: var(--surf); border: 1px solid var(--bord2); border-radius: 10px; padding: 11px 12px; cursor: pointer; transition: all .2s; }
+.pres:hover { background: var(--surf2); transform: translateY(-1px); }
+.pres.on { border-color: var(--accent); background: rgba(0,212,255,.05); box-shadow: inset 0 0 0 1px var(--accent); }
+.pres-top { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+.pres-nm { font-size: 13px; font-weight: 600; }
+.pres-ds { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.cust-prompt { background: var(--surf); border: 1px solid var(--bord2); border-radius: 10px; color: var(--text); font-family: 'Outfit', sans-serif; font-size: 13px; padding: 11px 14px; outline: none; width: 100%; resize: none; height: 76px; line-height: 1.6; transition: border-color .2s; margin-top: 12px; }
+.cust-prompt:focus { border-color: var(--accent); }
+.cust-prompt::placeholder { color: var(--dim); }
+
+/* Instagram form */
+.ig-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.ig-ico { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.ig-t1 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+.ig-t2 { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.fgrp { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.flbl { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+.badge-req  { background: rgba(239,68,68,.1);  color: var(--red);   font-size: 9px; padding: 2px 6px; border-radius: 4px; }
+.badge-opt  { background: rgba(78,106,135,.1); color: var(--muted); font-size: 9px; padding: 2px 6px; border-radius: 4px; }
+.badge-auto { background: rgba(16,185,129,.1); color: var(--green); font-size: 9px; padding: 2px 6px; border-radius: 4px; }
+input.fi, textarea.fi { background: var(--surf); border: 1px solid var(--bord2); border-radius: 8px; color: var(--text); font-family: 'Outfit', sans-serif; font-size: 13px; padding: 9px 12px; outline: none; width: 100%; transition: border-color .2s; resize: none; }
+input.fi:focus, textarea.fi:focus { border-color: var(--accent); }
+input.fi::placeholder, textarea.fi::placeholder { color: var(--dim); }
+textarea.fi { height: 76px; line-height: 1.6; }
+input.fi.ok { border-color: rgba(16,185,129,.5); }
+
+/* One-click button */
+.btn-one {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border: none; border-radius: 12px; color: #fff;
+  font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+  letter-spacing: 1.5px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px; transition: all .2s;
+}
+.btn-one:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(124,58,237,.4); }
+.btn-one:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-one .sp { width: 17px; height: 17px; border-radius: 50%; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; animation: spin .8s linear infinite; display: none; }
+.btn-one.loading .sp { display: block; }
+.btn-one.loading .oi { display: none; }
+
+.or-div { text-align: center; font-size: 11px; color: var(--dim); margin: 10px 0; position: relative; }
+.or-div::before, .or-div::after { content: ''; position: absolute; top: 50%; width: 38%; height: 1px; background: var(--bord); }
+.or-div::before { left: 0; } .or-div::after { right: 0; }
+
+/* Post button */
+.btn-post {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--ig1), #dc2743, var(--ig2));
+  border: none; border-radius: 12px; color: #fff;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+  letter-spacing: 1.5px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px; transition: all .2s;
+}
+.btn-post:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(220,39,67,.4); }
+.btn-post:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-post .sp { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; animation: spin .8s linear infinite; display: none; }
+.btn-post.loading .sp { display: block; }
+.btn-post.loading .pi { display: none; }
+
+/* Log */
+.logbox { background: var(--bg); border: 1px solid var(--bord); border-radius: 8px; padding: 10px 12px; max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 16px; }
+.ll { display: flex; gap: 8px; line-height: 1.7; padding: 1px 0; }
+.lts { color: var(--dim); flex-shrink: 0; }
+.lmsg { color: var(--muted); word-break: break-word; }
+.ll.ls .lmsg { color: var(--green); }
+.ll.le .lmsg { color: var(--red); }
+.ll.lw .lmsg { color: var(--gold); }
+.ll.la .lmsg { color: var(--accent); }
+
+/* Success toast */
+.toast {
+  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--green); color: #000; font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 14px; letter-spacing: 1px; padding: 14px 28px; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(16,185,129,.4); z-index: 999;
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bord2); border-radius: 2px; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .side { border-top: 1px solid var(--bord); }
+  .pipeline { display: none; }
+  header { padding: 14px 20px; }
+  .main { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-gem">✦</div>
+    <div>
+      <div class="logo-name">GEMINI <em>STUDIO</em></div>
+      <div class="logo-sub">AI · EDIT · PUBLISH</div>
+    </div>
+  </div>
+  <div class="pipeline">
+    <div class="ps active" id="ps1"><div class="pn" id="pn1">1</div>Upload</div>
+    <div class="pa">›</div>
+    <div class="ps" id="ps2"><div class="pn" id="pn2">2</div>AI Edit</div>
+    <div class="pa">›</div>
+    <div class="ps" id="ps3"><div class="pn" id="pn3">3</div>Host</div>
+    <div class="pa">›</div>
+    <div class="ps" id="ps4"><div class="pn" id="pn4">4</div>Instagram</div>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- ── LEFT ── -->
+  <div class="main">
+
+    <!-- Drop zone -->
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-inner">
+        <div class="drop-icon">🖼️</div>
+        <div class="drop-title">Drop your raw photo here</div>
+        <div class="drop-sub">or <span class="drop-lnk" id="browseBtn">browse files</span> · JPG · PNG · WEBP · max 20 MB</div>
+      </div>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
+    </div>
+
+    <!-- Before / After -->
+    <div class="compare" id="compare">
+      <div class="ccard">
+        <img id="origImg" src="" alt="Original">
+        <div class="clbl">📷 Original</div>
+      </div>
+      <div class="ccard">
+        <img id="aiImg"  src="" alt="AI Enhanced" style="display:none">
+        <div class="clbl ai" id="aiLbl" style="display:none">✦ AI Enhanced</div>
+        <div class="lov" id="lov">
+          <div class="ring"></div>
+          <div class="ring-msg" id="ringMsg">PROCESSING…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-bar-wrap" id="pgWrap">
+      <div class="progress-bar" id="pgBar"></div>
+    </div>
+
+    <!-- Pipeline status cards -->
+    <div class="pcards" id="pcards">
+      <div class="pcard" id="pc-g">
+        <div class="pcard-ttl"><span>✦</span> Gemini AI</div>
+        <div class="pcard-st" id="ps-g">Waiting…</div>
+      </div>
+      <div class="pcard" id="pc-c">
+        <div class="pcard-ttl"><span>☁️</span> Cloudinary</div>
+        <div class="pcard-st" id="ps-c">Waiting…</div>
+      </div>
+      <div class="pcard" id="pc-i">
+        <div class="pcard-ttl"><span>📸</span> Instagram</div>
+        <div class="pcard-st" id="ps-i">Waiting…</div>
+      </div>
+    </div>
+
+    <!-- Public URL bar -->
+    <div class="url-bar" id="urlBar">
+      <span>🔗</span>
+      <span class="url-bar-txt" id="urlTxt">—</span>
+      <button class="copy-btn" onclick="copyUrl()">Copy</button>
+    </div>
+
+    <!-- AI insight -->
+    <div class="ai-insight" id="aiInsight"></div>
+
+    <!-- Actions -->
+    <div class="actions" id="actions">
+      <button class="btn btn-ai" id="enhBtn" onclick="runEnhance()" disabled>
+        <span class="ic">✦</span><div class="sp"></div>ENHANCE WITH GEMINI
+      </button>
+      <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT ── -->
+  <div class="side">
+
+    <!-- Presets -->
+    <div class="sect">
+      <div class="stitle">Studio Style</div>
+      <div class="presets">
+        <div class="pres on" data-p="Transform this raw photo into a professional studio photograph with perfect three-point studio lighting: a strong key light, soft fill light, and sharp rim light. Clean neutral studio background, balanced exposure, rich contrast, and crisp fine detail. High-end commercial studio look." onclick="pickPreset(this)">
+          <div class="pres-top"><span>💡</span><span class="pres-nm">Studio Clean</span></div>
+          <div class="pres-ds">3-point lighting, neutral backdrop</div>
+        </div>
+        <div class="pres" data-p="Apply dramatic Rembrandt lighting: single powerful key light, deep moody shadows on one side, rich contrast, warm shadows, cool highlights, shallow depth-of-field bokeh background. Cinematic portrait look." onclick="pickPreset(this)">
+          <div class="pres-top"><span>🎭</span><span class="pres-nm">Dramatic</span></div>
+          <div class="pres-ds">Deep shadows, cinematic contrast</div>
+        </div>
+        <div class="pres" data-p="Give this photo a golden hour look: warm amber and orange tones, soft diffused backlighting from a low-angle sun, natural lens glow, lifted shadows, glowing highlights. Warm outdoor lifestyle color grade." onclick="pickPreset(this)">
+          <div class="pres-top"><span>🌅</span><span class="pres-nm">Golden Hour</span></div>
+          <div class="pres-ds">Warm amber, outdoor glow</div>
+        </div>
+        <div class="pres" data-p="Apply a high-end beauty fashion studio look: large diffused front softbox, minimal shadows, smooth even lighting, soft pastel airy toning, bright clean feel, gentle highlight glow. Glossy fashion magazine cover." onclick="pickPreset(this)">
+          <div class="pres-top"><span>🌸</span><span class="pres-nm">Beauty Soft</span></div>
+          <div class="pres-ds">Softbox, airy fashion magazine</div>
+        </div>
+        <div class="pres" data-p="Edit as a premium e-commerce product photo: pure white studio background, bright flat even lighting, perfect sharpness, neutral color, clean shadow. Polished premium like an Apple product launch." onclick="pickPreset(this)">
+          <div class="pres-top"><span>📦</span><span class="pres-nm">Product Shot</span></div>
+          <div class="pres-ds">Commercial white studio</div>
+        </div>
+        <div class="pres" data-p="Apply a moody cinematic Netflix film-still look: teal-and-orange color grade, underexposed shadows, subtle film grain, cool cyan highlights, warm amber shadows. High-end streaming original film aesthetic." onclick="pickPreset(this)">
+          <div class="pres-top"><span>🎬</span><span class="pres-nm">Cinematic</span></div>
+          <div class="pres-ds">Teal-orange, Netflix grade</div>
+        </div>
+      </div>
+      <textarea class="cust-prompt" id="custPrompt" placeholder="Custom instructions… e.g. 'Vintage 1970s Kodachrome film look with grain'"></textarea>
+    </div>
+
+    <!-- Instagram -->
+    <div class="sect" style="flex:1">
+      <div class="ig-head">
+        <div class="ig-ico">📸</div>
+        <div>
+          <div class="ig-t1">Publish to Instagram</div>
+          <div class="ig-t2">Graph API v19.0 · Fully automated</div>
+        </div>
+      </div>
+
+      <div class="fgrp">
+        <div class="flbl">Caption <span class="badge-opt">OPTIONAL</span></div>
+        <textarea class="fi" id="caption" placeholder="Write your caption…&#10;#aiart #studio #photography"></textarea>
+      </div>
+
+      <div class="fgrp">
+        <div class="flbl">Hosted Image URL <span class="badge-auto">⚡ AUTO-FILLED</span></div>
+        <input class="fi" type="text" id="imageUrl" placeholder="Auto-generated after enhancement…" readonly>
+      </div>
+
+      <button class="btn-one" id="oneBtn" onclick="runPipeline()" disabled>
+        <span class="oi">⚡</span><div class="sp"></div>ENHANCE → HOST → POST
+      </button>
+
+      <div class="or-div">or step by step</div>
+
+      <button class="btn-post" id="postBtn" onclick="runPost()" disabled>
+        <span class="pi">📤</span><div class="sp"></div>POST TO INSTAGRAM
+      </button>
+
+      <div class="logbox" id="logbox">
+        <div class="ll"><span class="lts">--:--:--</span><span class="lmsg">Ready — upload an image to begin.</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Success toast -->
+<div class="toast" id="toast">🎉 Photo is live on Instagram!</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────
+let rawFile   = null;
+let aiB64     = null, aiMime = 'image/png';
+let publicUrl = null;
+let activePreset = document.querySelector('.pres.on');
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const v = id => $( id)?.value?.trim() || '';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function ts() {
+  return new Date().toTimeString().slice(0,8);
+}
+
+function log(msg, t = 'i') {
+  const box  = $('logbox');
+  const line = document.createElement('div');
+  line.className = `ll l${t}`;
+  line.innerHTML = `<span class="lts">${ts()}</span><span class="lmsg">${String(msg).replace(/</g,'&lt;')}</span>`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setLoad(id, on) {
+  const b = $(id);
+  b.classList.toggle('loading', on);
+  b.disabled = on;
+}
+
+function showOv(on, msg) {
+  $('lov').classList.toggle('show', on);
+  if (msg) $('ringMsg').textContent = msg;
+}
+
+function progress(pct) {
+  $('pgWrap').classList.add('show');
+  $('pgBar').style.width = pct + '%';
+  if (pct >= 100) setTimeout(() => $('pgWrap').classList.remove('show'), 800);
+}
+
+function pcard(id, state, txt) {
+  const c = $('pc-' + id), s = $('ps-' + id);
+  c.classList.remove('active','done','error');
+  if (state) c.classList.add(state);
+  s.textContent = txt;
+}
+
+function stepPipe(n, state) {
+  const ns = $('ps' + n), nn = $('pn' + n);
+  ns.classList.remove('active','done');
+  if (state === 'active') { ns.classList.add('active'); nn.textContent = n; }
+  if (state === 'done')   { ns.classList.add('done');   nn.textContent = '✓'; }
+}
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function checkReady() {
+  $('enhBtn').disabled = !rawFile;
+  $('oneBtn').disabled = !rawFile;
+  $('postBtn').disabled = !(publicUrl);
+}
+
+// ─── CANVAS → JPEG ────────────────────────────────────────────────────────
+// Server handles conversion, but we preview in browser using data URL as-is.
+// The /api/upload endpoint forces JPEG via Cloudinary eager transform.
+
+// ─── FILE UPLOAD ─────────────────────────────────────────────────────────
+const dropZone = $('dropZone');
+$('browseBtn').addEventListener('click', e => { e.stopPropagation(); $('fileInput').click(); });
+dropZone.addEventListener('click', () => { if (!rawFile) $('fileInput').click(); });
+$('fileInput').addEventListener('change', e => e.target.files[0] && loadFile(e.target.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  e.dataTransfer.files[0] && loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(file) {
+  if (!file.type.startsWith('image/')) { log('Only image files supported', 'e'); return; }
+  rawFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    dropZone.classList.add('has-img');
+    $('origImg').src = ev.target.result;
+    $('compare').classList.add('show');
+    $('pcards').classList.add('show');
+    $('actions').classList.add('show');
+    stepPipe(1,'done'); stepPipe(2,'active');
+    checkReady();
+    log(`Loaded: ${file.name} (${Math.round(file.size/1024)} KB)`, 'i');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── PRESETS ─────────────────────────────────────────────────────────────
+function pickPreset(el) {
+  document.querySelectorAll('.pres').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  activePreset = el;
+}
+
+function buildPrompt() {
+  const custom = v('custPrompt');
+  const preset = activePreset?.dataset?.p || 'Transform this raw photo into a professional studio photograph.';
+  return (custom || preset) +
+    '\n\nReturn ONLY the edited image. Preserve the original subject and composition — only enhance lighting, color grading, and atmosphere.';
+}
+
+// ─── API CALLS (all via /api/* — keys stay server-side) ──────────────────
+
+async function apiEnhance() {
+  const form = new FormData();
+  form.append('image',  rawFile);
+  form.append('prompt', buildPrompt());
+
+  const res  = await fetch('/api/enhance', { method: 'POST', body: form });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+  return data; // { imageB64, imageMime, text }
+}
+
+async function apiUpload(imageB64, imageMime) {
+  const res  = await fetch('/api/upload', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ imageB64, imageMime }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Upload error ${res.status}`);
+  return data.url;
+}
+
+async function apiPost(imageUrl, caption) {
+  const res  = await fetch('/api/instagram/post', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ imageUrl, caption }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Instagram error ${res.status}`);
+  return data; // { success, mediaId }
+}
+
+// ─── STEP: ENHANCE ────────────────────────────────────────────────────────
+async function runEnhance() {
+  if (!rawFile) return;
+  setLoad('enhBtn', true);
+  showOv(true, 'CALLING GEMINI AI…');
+  pcard('g','active','Sending to Gemini…');
+  $('aiInsight').classList.remove('show');
+  progress(10);
+  log('Sending to Gemini 2.5 Flash Image…', 'a');
+
+  try {
+    const result = await apiEnhance();
+    aiB64  = result.imageB64;
+    aiMime = result.imageMime;
+
+    const dataUrl = `data:${aiMime};base64,${aiB64}`;
+    showOv(false);
+    $('aiImg').src = dataUrl; $('aiImg').style.display = 'block';
+    $('aiLbl').style.display = 'block';
+
+    if (result.text) {
+      $('aiInsight').textContent = '✦ GEMINI: ' + result.text;
+      $('aiInsight').classList.add('show');
+    }
+
+    pcard('g','done','✓ Enhancement complete');
+    stepPipe(2,'done'); stepPipe(3,'active');
+    progress(40);
+    log('✓ Gemini AI enhancement complete', 's');
+    checkReady();
+  } catch(err) {
+    showOv(false); pcard('g','error','✗ ' + err.message);
+    log('✗ Gemini: ' + err.message, 'e');
+  }
+  setLoad('enhBtn', false);
+}
+
+// ─── STEP: UPLOAD ─────────────────────────────────────────────────────────
+async function runUpload() {
+  if (!aiB64) throw new Error('Enhance image first');
+  pcard('c','active','Converting & uploading…');
+  $('ringMsg').textContent = 'UPLOADING TO CLOUDINARY…';
+  log('Converting to JPEG & uploading to Cloudinary…', 'a');
+  progress(60);
+
+  const url = await apiUpload(aiB64, aiMime);
+  publicUrl = url;
+
+  $('urlTxt').textContent = url;
+  $('urlBar').classList.add('show');
+  $('imageUrl').value = url;
+  $('imageUrl').classList.add('ok');
+
+  pcard('c','done','✓ JPEG hosted on Cloudinary');
+  stepPipe(3,'done'); stepPipe(4,'active');
+  progress(75);
+  log('✓ Public JPEG URL: ' + url, 's');
+  checkReady();
+}
+
+// ─── STEP: POST ───────────────────────────────────────────────────────────
+async function runPost() {
+  const imgUrl = v('imageUrl');
+  if (!imgUrl) { log('✗ No image URL — enhance & auto-host first', 'e'); return; }
+
+  setLoad('postBtn', true);
+  pcard('i','active','Posting to Instagram…');
+  log('Posting to Instagram Graph API…', 'a');
+  progress(85);
+
+  try {
+    const result = await apiPost(imgUrl, v('caption'));
+    stepPipe(4,'done');
+    pcard('i','done','🎉 Posted! ID: ' + result.mediaId);
+    progress(100);
+    log('🎉 Live on Instagram! Media ID: ' + result.mediaId, 's');
+    showToast('🎉 Your photo is live on Instagram!');
+  } catch(err) {
+    pcard('i','error','✗ ' + err.message);
+    log('✗ Instagram: ' + err.message, 'e');
+    setLoad('postBtn', false);
+    throw err;
+  }
+  setLoad('postBtn', false);
+}
+
+// ─── ONE-CLICK PIPELINE ───────────────────────────────────────────────────
+async function runPipeline() {
+  if (!rawFile) { log('✗ Upload an image first', 'e'); return; }
+
+  setLoad('oneBtn', true);
+  log('⚡ ONE-CLICK PIPELINE STARTED', 'a');
+
+  try {
+    // 1. Gemini enhance
+    showOv(true, 'STEP 1/3 — GEMINI AI…');
+    pcard('g','active','Sending to Gemini…');
+    log('Step 1/3 — Gemini AI enhancement…', 'a');
+    const result = await apiEnhance();
+    aiB64  = result.imageB64;
+    aiMime = result.imageMime;
+
+    const dataUrl = `data:${aiMime};base64,${aiB64}`;
+    $('aiImg').src = dataUrl; $('aiImg').style.display = 'block'; $('aiLbl').style.display = 'block';
+    if (result.text) { $('aiInsight').textContent = '✦ ' + result.text; $('aiInsight').classList.add('show'); }
+    pcard('g','done','✓ Enhanced'); stepPipe(2,'done'); stepPipe(3,'active');
+    log('✓ Enhancement done', 's'); progress(33);
+
+    // 2. Cloudinary upload
+    showOv(true, 'STEP 2/3 — HOSTING IMAGE…');
+    log('Step 2/3 — Uploading to Cloudinary…', 'a');
+    await runUpload();
+    showOv(false); progress(66);
+
+    // 3. Instagram post
+    showOv(true, 'STEP 3/3 — POSTING TO INSTAGRAM…');
+    log('Step 3/3 — Posting to Instagram…', 'a');
+    await runPost();
+    showOv(false); progress(100);
+
+    log('✅ PIPELINE COMPLETE — photo is live on Instagram!', 's');
+
+  } catch(err) {
+    showOv(false);
+    log('✗ Pipeline stopped: ' + err.message, 'e');
+  }
+
+  setLoad('oneBtn', false);
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────
+function resetAll() {
+  rawFile = null; aiB64 = null; publicUrl = null;
+  dropZone.classList.remove('has-img');
+  $('compare').classList.remove('show');
+  $('pcards').classList.remove('show');
+  $('actions').classList.remove('show');
+  $('urlBar').classList.remove('show');
+  $('aiInsight').classList.remove('show');
+  $('pgWrap').classList.remove('show');
+  $('aiImg').src = ''; $('aiImg').style.display = 'none';
+  $('aiLbl').style.display = 'none';
+  showOv(false);
+  $('imageUrl').value = ''; $('imageUrl').classList.remove('ok');
+  $('fileInput').value = '';
+  ['g','c','i'].forEach(k => pcard(k,'','Waiting…'));
+  [1,2,3,4].forEach(n => stepPipe(n, n===1?'active':''));
+  checkReady();
+  log('Reset — ready for new image.', 'i');
+}
+
+function copyUrl() {
+  if (!publicUrl) return;
+  navigator.clipboard.writeText(publicUrl)
+    .then(()  => log('URL copied to clipboard', 's'))
+    .catch(() => log('Copy failed', 'w'));
+}
+</script>
+</body>
+</html>
