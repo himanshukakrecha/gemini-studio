@@ -69,8 +69,11 @@ app.post('/api/enhance', upload.single('image'), async (req, res) => {
     if (!req.body.prompt) return res.status(400).json({ error: 'prompt is required' });
 
     // ...existing code...
+const PORT = process.env.PORT || 3000;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'models/gemini-2.0-flash-exp';
+// ...existing code...
     const gemRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,6 +89,7 @@ app.post('/api/enhance', upload.single('image'), async (req, res) => {
         }),
       }
     );
+ // ...existing code...
 
     if (!gemRes.ok) {
       const err = await gemRes.json().catch(() => ({}));
